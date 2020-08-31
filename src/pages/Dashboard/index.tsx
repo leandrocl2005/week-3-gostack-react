@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import React, { useState, FormEvent } from 'react';
 import { FiChevronRight } from 'react-icons/fi';
-import { Title, Form, Repositories } from './styles';
+import { Title, Form, Repositories, Error } from './styles';
 import logoImg from '../../assets/logo.svg';
 import api from '../../services/api';
 
@@ -15,6 +15,7 @@ interface Repository {
 }
 
 const Dashboard: React.FC = () => {
+  const [inputError, setInputError] = useState('');
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [newRepo, setNewRepo] = useState('');
 
@@ -22,17 +23,28 @@ const Dashboard: React.FC = () => {
     event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault();
-    const response = await api.get<Repository>(`repos/${newRepo}`);
-    const repository = response.data;
-    setRepositories([...repositories, repository]);
-    setNewRepo('');
+
+    if (!newRepo) {
+      setInputError('Digite o autor/nome do repositório!');
+      return;
+    }
+    try {
+      const response = await api.get<Repository>(`repos/${newRepo}`);
+
+      const repository = response.data;
+      setRepositories([...repositories, repository]);
+      setNewRepo('');
+      setInputError('');
+    } catch (err) {
+      setInputError('Erro na busca por esse repositório');
+    }
   }
 
   return (
     <>
       <img src={logoImg} alt="Github Explorer" />
       <Title>Explore repositórios no Github</Title>
-      <Form action="" onSubmit={handleAddRepository}>
+      <Form hasError={!!inputError} action="" onSubmit={handleAddRepository}>
         <input
           placeholder="Digite o nome do repositório"
           value={newRepo}
@@ -40,6 +52,9 @@ const Dashboard: React.FC = () => {
         />
         <button type="submit">Pesquisar</button>
       </Form>
+
+      {inputError && <Error>{inputError}</Error>}
+
       <Repositories>
         {repositories.map(repository => (
           <a key={repository.full_name} href="teste">
